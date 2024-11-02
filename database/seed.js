@@ -12,7 +12,7 @@ const seedProjects = async numEntries => {
   const projects = [];
 
   for (let i = 0; i < numEntries; i++) {
-    const name = faker.lorem.words(3);
+    const name = faker.lorem.words(2);
 
     projects.push({
       name,
@@ -22,7 +22,44 @@ const seedProjects = async numEntries => {
     });
   }
 
-  await supabase.from("projects").insert(projects);
+  const { data, error } = await supabase
+    .from("projects")
+    .insert(projects)
+    .select();
+
+  if (error) console.error(error);
+
+  return data;
 };
 
-await seedProjects(10);
+const seedTasks = async (numEntries, projectIds) => {
+  const tasks = [];
+
+  for (let i = 0; i < numEntries; i++) {
+    tasks.push({
+      name: faker.lorem.words(3),
+      status: faker.helpers.arrayElement(["in-progress", "completed"]),
+      description: faker.lorem.paragraph(),
+      due_date: faker.date.future(),
+      project_id: faker.helpers.arrayElement(projectIds),
+      collaborators: faker.helpers.arrayElements([1, 2, 3]),
+    });
+  }
+
+  const { data, error } = await supabase
+    .from("tasks")
+    .insert(tasks)
+    .select("id");
+
+  if (error) console.error(error);
+
+  return data;
+};
+
+const seedDatabase = async numEntriesPerTable => {
+  const projects = await seedProjects(numEntriesPerTable);
+  const projectIds = projects.map(project => project.id);
+  await seedTasks(numEntriesPerTable, projectIds);
+};
+
+await seedDatabase(10);
